@@ -11,6 +11,9 @@
 
     const add = (a, b) => a + b;
 
+    // 코드가 복잡해보인다.
+    // go와 pipe로 정리해보자.
+
     log(
         reduce(
             add,
@@ -36,22 +39,44 @@
         log);
     // 111
 
+    /**
+     pipe :
+        함수를 리턴하는 데 사용함
+        내부에서 go를 사용함
+     */
 
-    const pipe = (f, ...fs) => (...as) => go(f(...as), ...fs);
-
-    go(
-        add(0, 1),
-        a => a + 10,
-        a => a + 100,
-        log);
-    // 111
-
-    const f = pipe(
-        (a, b) => a + b,
+    let pipe = (...fs) => (a) => go(a, ...fs);
+    const f0 = pipe(
+        a => a + 1,
         a => a + 10,
         a => a + 100);
+    // go(a, f1, f2, f3, f4) 를 리턴함
 
-    log(f(0, 1));
+    // 인자 2개를 넘겨야 하는 경우:
+        // go 함수
+            go (
+                add(0, 1), // 1  시작할때 인자 2개를 평가함
+                a => a + 10,
+                a => a + 100,
+                log);
+            // 111
+
+
+        // pipe 함수
+            // 위에서 정의한 pipe 함수는, // let pipe = (...fs) => (a) => go(a, ...fs);
+            // 인자 2개를 먼저 함수에 넣어 평가를 한뒤, 1개로 만들어 전달해야하기 때문에 아쉬운 점이 있다.
+            log(f0(add(0, 1)));
+
+            // pipe 함수 변경 후
+            // go 에 전달하는 첫번째 함수에 인자들(...as)을 펼쳐서 넣어주면 된다.
+            pipe = (f, ...fs) => (...as) => go(f(...as), ...fs);
+
+            const f = pipe(
+                (a, b) => a + b,
+                a => a + 10,
+                a => a + 100);
+
+            log(f(0, 1));
 
     console.clear();
 
