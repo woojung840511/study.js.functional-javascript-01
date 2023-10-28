@@ -94,3 +94,24 @@ log(iter.next()); // { value: undefined, done: true }
 for (const a of odds3(40)) {
     log(a);
 }
+
+
+/**
+ 제너레이터는 이터러블/이터레이터 프로토콜을 따르고 있기 때문에
+ for of,
+ 전개 연산자, 구조 분해, 나머지 연산자 등과 함께 사용할 수 있다.
+ */
+
+log('전개연산자')
+log(...odds(10));
+log([...odds(10), ...odds(20)]);
+
+log('구조분해, 나머지 연산자')
+const [head, ...tail] = odds(5);
+log(head);
+log(tail);
+
+const [a, b, ...rest] = odds(10);
+log(a);
+log(b);
+log(rest);
