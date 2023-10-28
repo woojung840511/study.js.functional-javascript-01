@@ -39,6 +39,9 @@
         log);
     // 111
 
+    // 생각거리
+    // go에서 첫번째 인자는 무조건 함수가 아니라 value가 와야겠다.
+
     /**
      pipe :
         함수를 리턴하는 데 사용함
@@ -78,18 +81,23 @@
 
             log(f(0, 1));
 
-    console.clear();
+    // console.clear();
 
 </script>
 
 <script>
 
+    // 코드가 복잡해보인다.
     log(
         reduce(
             add,
             map(p => p.price,
                 filter(p => p.price < 20000, products))));
 
+    // 위 코드를 go, pipe로 표현을 바꿀 수 있다.
+    // go 함수를 사용해서
+    // 함수를 위에서 아래로, 왼쪽에서 오른쪽으로 평가하면서
+    // 연속적으로 함수를 실행하고 이전에 실행된 결과를 다음 함수에게 전달하게 된다.
     go(
         products,
         products => filter(p => p.price < 20000, products),
@@ -97,6 +105,7 @@
         prices => reduce(add, prices),
         log);
 
+    // 음? 이건 뭘까요?
     go(
         products,
         filter(p => p.price < 20000),
@@ -104,40 +113,4 @@
         reduce(add),
         log);
 
-</script>
-
-## curry
-
-<script>
-
-    const mult = curry((a, b) => a * b);
-    log(mult(3)(2));
-
-    const mult3 = mult(3);
-    log(mult3(10));
-    log(mult3(5));
-    log(mult3(3));
-    console.clear();
-</script>
-
-# 함수 조합으로 함수 만들기
-
-<script>
-    const total_price = pipe(
-        map(p => p.price),
-        reduce(add));
-
-    const base_total_price = predi => pipe(
-        filter(predi),
-        total_price);
-
-    go(
-        products,
-        base_total_price(p => p.price < 20000),
-        log);
-
-    go(
-        products,
-        base_total_price(p => p.price >= 20000),
-        log);
 </script>
