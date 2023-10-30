@@ -1,0 +1,95 @@
+<script src="../lib/fx.js"></script>
+
+## range
+
+<script>
+  var add = (a, b) => a + b;
+
+  const range = l => {
+    let i = -1;
+    let res = [];
+    while (++i < l) {
+      res.push(i);
+    }
+    return res;
+  };
+
+  log(range(5)); // [0, 1, 2, 3, 4]
+  log(range(2)); // [0, 1]
+
+  var list = range(4);
+  log(list);
+  log(reduce(add, list));
+</script>
+
+## 느긋한 L.range
+
+<script>
+  const L = {};
+  L.range = function* (l) { // * : generator
+    let i = -1;
+    while (++i < l) {
+      yield i;
+    }
+  };
+
+  var list = L.range(4); // L.range는 이터레이터를 반환한다. 배열이 아님
+  log(list);             // L.range {<suspended>}
+  log(reduce(add, list));
+
+    /*
+
+    range를 호출
+      reduce가 실행될 때는 이미 배열이 만들어져 있다.
+      var list = range(4); <-- 여기서 range 내부의 모든 코드가 이미 평가가 완료된다.
+
+    L.range를 호출
+      배열을 만들지 않고 이터레이터를 반환한다.
+      var list = L.range(4); <-- 여기서는 코드 내부 어떤 부분도 평가가 되지 않는다.
+      reduce 내부에서 순회를 할 때마다 하나씩 평가가 된다. --> 더 효율적!
+
+    */
+
+</script>
+
+<script>
+  function test(name, time, f) {
+    console.time(name);
+    while (time--) f();
+    console.timeEnd(name);
+  }
+
+  test('range', 10, () => reduce(add, range(1000000)));
+  test('L.range', 10, () => reduce(add, L.range(1000000))); // 더 성능이 좋고 효율적이다.
+
+  // console.clear();
+</script>
+
+## take
+
+<script>
+  const take = curry((l, iter) => {
+    let res = [];
+    for (const a of iter) {
+      res.push(a);
+      if (res.length == l) return res;
+    }
+    return res;
+  });
+  console.time('');
+  go(
+    range(10000),
+    take(5),
+    reduce(add),
+    log);
+  console.timeEnd('');
+
+  console.time('');
+  go(
+    L.range(10000),
+    take(5),
+    reduce(add),
+    log);
+  console.timeEnd('');
+</script>
+
