@@ -8,11 +8,41 @@
     }
   });
 
-  const takeAll = take(Infinity);
+  // step 1 :: 기존의 map 구현 내용
+/*
+  const map = curry((f, iter) => {
+      let res = [];
+      iter = iter[Symbol.iterator()];
+      let cur;
+      while (!(cur = iter.next()).done) {
+        const a = cur.value;
+        res.push(f(a));
+      }
+      return res;
+  });
+*/
 
+  // step 2 :: map을 L.map을 이용해 간결하게 만들기
+/*
+  const map = curry((f, iter) => go(
+      iter,
+      L.map(f), // 여기까지만 하고 로그를 찍어보면 앞으로 평가를 할 수 있는, 지연된 값을 확인할 수 있다.
+      take(Infinity)
+  ));
+*/
+
+  // step 3 :: map 완성
+/*
+  const map = curry(pipe(
+      L.map(f, iter),
+      take(Infinity)
+  ))
+*/
+
+  const takeAll = take(Infinity);
   const map = curry(pipe(L.map, takeAll));
 
-  log(map(a => a + 10, L.range(4)));
+  log("map :: " , map(a => a + 10, L.range(4)));
 
   // ## L.filter + take로 filter 만들기
 
