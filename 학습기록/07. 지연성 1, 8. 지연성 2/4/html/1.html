@@ -12,7 +12,7 @@
 
   L.flatten = function* (iter) {
     for (const a of iter) {
-
+      log('L.flatten > for loop : a =', a);
       // a가 iterable 하면 펼쳐서 yield 한다. -> a 안에 있는 모든 값들을 yield하기
       if (isIterable(a)) for (const b of a) yield b;
       else yield a;
@@ -55,7 +55,9 @@
 
 <script>
   L.flatten = function* (iter) {
+    log('call L.flatten');
     for (const a of iter) {
+      log('L.flatten > for loop : a =', a);
       if (isIterable(a)) yield* a;
       else yield a;
     }
@@ -173,12 +175,25 @@
 ## 2차원 배열 다루기
 
 <script>
+
+  log('2 dimensional array')
   const arr = [
     [1, 2],
     [3, 4, 5],
     [6, 7, 8],
     [9, 10],
   ];
+
+  // 로그를 확인해보면, 필요한 만큼만 지연적으로 동작한다는 것을 알 수 있다.
+  // todo [ ] 아직 완벽하게 머릿속에 그릴 수 있을만큼 숙지되지 않았으므로 한번 더 봐야 함
+  go(arr,
+      L.flatten,
+      L.filter(a => a % 2),
+      L.map(a => a * a),
+      take(3),
+      log
+
+  );
 
   go(arr,
       L.flatten,
@@ -219,12 +234,12 @@
     },
   ];
 
-  go(users,
-      L.flatMap(u => u.family),
-      L.filter(u => u.age > 20),
-      L.map(u => u.age),
-      take(4),
-      reduce(add),
-      log);
+  // go(users,
+  //     L.flatMap(u => u.family),
+  //     L.filter(u => u.age > 20),
+  //     L.map(u => u.age),
+  //     take(4),
+  //     reduce(add),
+  //     log);
 </script>
 
