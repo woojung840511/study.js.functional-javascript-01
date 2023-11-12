@@ -81,17 +81,64 @@
 ## L.flatMap
 
 <script>
-  // log([[1, 2], [3, 4], [5, 6, 7]].flatMap(a => a));
-  // log([[1, 2], [3, 4], [5, 6, 7]].flatMap(a => a.map(a => a * a)));
-  // log(flatten([[1, 2], [3, 4], [5, 6, 7]].map(a => a.map(a => a * a))));
+  // 자바스크립트 배열에서 가진 flatMap 함수
+
+  log('array - flatMap : identity')
+  // 아래처럼 사용하면 그냥 flatten을 사용하는 것과 같은 결과를 얻는다.
+  log([[1, 2], [3, 4], [5, 6, 7]].flatMap(a => a));
+/*
+  // 위 함수에서 로그를 찍어 동작 상세하게 살펴보기
+  log([[1, 2], [3, 4], [5, 6, 7]].flatMap(a => {
+    log('flatMap > log a :: ', a);
+    return a;
+  }));
+*/
+  log('array - flatMap : map')
+  log([[1, 2], [3, 4], [5, 6, 7]].flatMap(a => a.map(a => a * a)));
+/*
+  // 위 함수에서 로그를 찍어 동작 상세하게 살펴보기
+  log([[1, 2], [3, 4], [5, 6, 7]].flatMap(a => {
+    log('flatMap > log a :: ', a);
+    return a.map(a => {
+      log('flatMap > map > log a :: ', a);
+      return a * a;
+    });
+  }));
+*/
+  // 로그 확인 결과,
+  // 모든 요소에 접근해서 map 함수 로직을 평가하고
+  // 배열을 flatten 한다.
+
+  // 그래서 아래와 동작 흐름이 같다. (map을 한 후에 flatten 에 적용)
   // log(flatten([[1, 2], [3, 4], [5, 6, 7]].map(a => a.map(a => a * a))));
 
+  // 그런데도 flatMap 함수가 있는 이유
+  //    map 과 flatMap 이 비효율적으로 동작하기 때문
+  //    1. map 적용시 : a * a 로 요소를 변환한 새로운 배열을 먼저 만든다 [1, 4], [9, 16], [25, ..]
+  //        log([[1, 2], [3, 4], [5, 6, 7]].map(a => a.map(a => a * a)));
+  //    2. flatten 적용시 : 다시 한번 전체를 순회하면서 내부 배열의 요소로 펼쳐서 새로운 배열에 담는다.
+  //        log(flatten([[1, 2], [3, 4], [5, 6, 7]].map(a => a.map(a => a * a))));
+  //    결론: 약간의 비효율이 발생한다.
+  //         한번에 하는 코드 flatMap을 통해서 조금더 효율적으로 동작하도록 함
+  //         (내 생각: 정확히 어떤 부분이 효율적인지는 아직 잘 모르겠다. 코드의 가독성일까)
+  //         강사님: 사실 시간 복잡도 면에서는 차이가 없습니다.
+  //                순회해야할 것들을 결국 다 순회해야하기 때문입니다.
+  //                굉장히 많은 효율이 생겼다라고 말할 수는 없습니다.
+
+  // 좀더 효율성이 있는 flatMap을 구현해보기
+  // 좀더 다형성이 있는 flatMap을 구현해보기
+  // --> L.flatMap
+  //     이미 만들어진 함수로 간단하게 구현할 수 있다.
+  //     결국 L.map 을 한번하고, L.flatten 을 하는 것이다.
+  //     내부 로직 설명 :
+  //        L.map - 지연적으로 이터레이터를 만들어서 넘긴다.
+  //     (내 생각: 여기서 효율성이 더 생긴 것은 지연적으로 동작하기 때문인건가. 모든 요소를 순회해야하는 경우엔 어차피 시간복잡도?가 같을 것 같다.)
   L.flatMap = curry(pipe(L.map, L.flatten));
-  const flatMap = curry(pipe(L.map, flatten));
 
-  // var it = L.flatMap(map(a => a * a), [[1, 2], [3, 4], [5, 6, 7]]);
-  var it = L.flatMap(a => a, [[1, 2], [3, 4], [5, 6, 7]]);
-  log([...it]);
+  // L.flatMap 활용해보기
+  var it = L.flatMap(map(a => a * a), [[1, 2], [3, 4], [5, 6, 7]]);
+  // var it = L.flatMap(a => a, [[1, 2], [3, 4], [5, 6, 7]]);
+  log('L.flatMap - ', [...it]);
   // log(it.next());
   // log(it.next());
   // log(it.next());
@@ -99,18 +146,27 @@
   // log(it.next());
   // log(it.next());
   // log(it.next());
-  log(flatMap(a => a, [[1, 2], [3, 4], [5, 6, 7]]));
 
-  log(flatMap(L.range, map(a => a + 1, [1, 2, 3])));
+  // 즉시 평가하는 flatMap 만들기 (아래 3개는 동일하다?)
+  const flatMap
+      //   = pipe(L.flatMap, takeAll);                // flatMap 을 하고 모두 꺼내는 것
+      //   = curry(pipe(L.map, L.flatten, takeAll));
+        = curry(pipe(L.map, flatten));                // flatten - 평가를 모두 완료한 flatMap으로 만들기
+
+  log('flatMap -', flatMap(a => a, [[1, 2], [3, 4], [5, 6, 7]]));
+
+  log('flatMap - L.range :: ', flatMap(L.range,[1,2,3]));
+  log('flatMap - L.range :: ', flatMap(L.range, map(a => a + 1, [1, 2, 3])));
 
   var it = L.flatMap(L.range, map(a => a + 1, [1, 2, 3]));
+  // log(...it);
   log(it.next());
   log(it.next());
   log(it.next());
   log(it.next());
 
   log(take(3, L.flatMap(L.range, map(a => a + 1, [1, 2, 3]))));
-  console.clear();
+  // console.clear();
 </script>
 
 
