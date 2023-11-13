@@ -1,0 +1,138 @@
+<script src="../lib/fx.js"></script>
+# Promise
+
+## 일급
+
+<script>
+
+  /*
+  자바스크립트에서 비동기 동시성 프로그래밍?을 하는 방법 2가지
+  1. 콜백 패턴
+  2. promise
+
+   */
+
+  // 1. 콜백 패턴 사용하기
+  function add10(a, callback) {
+    // 의도적으로 비동기 상황을 만들었다.
+    // 결과를 100밀리세컨드 뒤에 전달
+    setTimeout(() => callback(a + 10), 100);
+  }
+
+  // 콜백 패턴 사용 예_1
+  add10(5, res => {
+    log(res); // 15
+  })
+
+  // 콜백 패턴 사용 예_2 : 중첩이 복잡하다 으악 복잡하다
+  // var a = add10(5, res => { // callback // res 에 5 + 10
+  //       add10(res, res => {             // 100ms 후 콜백 add10 호출, res = 15
+  //         add10(res, res => {           // 100ms 후 콜백 add10 호출, res = 25
+  //           log('callback - ', res);    // 100ms 후 콜백 log 호출, res = 35
+  //         });
+  //       });
+  //     });
+  //
+  // log("add10 callback : a= ", a);
+
+  // 2. promise 사용하기
+  // 콜백함수를 받지 않는다. 실제로 연산에 필요한 인자만 받는다.
+  function add20(a) {
+    log('call add20 a', a);
+
+    // - 콜백을 사용한 add10과 가장 상징적으로 차이가 나는 부분
+    //      promise를 '리턴'한다. (리턴이 중요하다)
+    // - promise가 모두 해결됐다는 것을 (뭘 해결했다는거지) resolve 함수를 실행하는 것으로 알려주게 된다.?
+    //      내 생각 :
+    //          setTimeout 을 수행하고, 즉 100ms 후 resolve 를 리턴하는 함수를 실행하게 되는데
+    //          실행결과를 보면 then 안에 쓰인 함수 add20이 resolve 여야 말이 된다.
+    //          then 안에 쓰인 함수가 resolve 에 대입이 되나보다.
+
+    return new Promise(resolve => setTimeout(
+        () => {
+          log('resolve (',a + ' + 20)');
+          return resolve(a + 20);
+        }
+        , 100
+    ));
+  }
+
+  // 2번 더 add20을 하는 경우 : 중첩하지 않고 이어서 써내려간다.(then) 가독성이 좋음
+  var b = add20(5)
+    .then(add20)    // 100ms 후 resolve 함수인?? add20 호출, a = 25
+    .then(add20)    // 100ms 후 resolve 함수인?? add20 호출, a = 45
+    .then(log);     // 100ms 후 resolve 함수인?? log 호출, a = 65
+
+  log('b', b);
+</script>
+
+## 일급 활용
+
+<script>
+  const delay100 = a => new Promise(resolve =>
+    setTimeout(() => resolve(a), 100));
+
+  const go1 = (a, f) => a instanceof Promise ? a.then(f) : f(a);
+  const add5 = a => a + 5;
+
+  const n1 = 10;
+  // log(go1(go1(n1, add5), log));
+
+  const n2 = delay100(10);
+  // log(go1(go1(n2, add5), log));
+</script>
+
+## Composition
+
+<script type="module">
+  // f . g
+  // f(g(x))
+
+  const g = a => a + 1;
+  const f = a => a * a;
+
+  // log(f(g(1)));
+  // log(f(g()));
+
+  Array.of(1).map(g).map(f)/*.forEach(r => log(r))*/;
+  [].map(g).map(f)/*.forEach(r => log(r))*/;
+
+  Promise.resolve(2).then(g).then(f)/*.then(r => log(r))*/;
+  new Promise(resolve =>
+    setTimeout(() => resolve(2), 100)
+  ).then(g).then(f)/*.then(r => log(r))*/;
+</script>
+
+## Kleisli Composition
+
+<script>
+  // f . g
+  // f(g(x)) = f(g(x))
+  // f(g(x)) = g(x)
+
+  var users = [
+    {id: 1, name: 'aa'},
+    {id: 2, name: 'bb'},
+    {id: 3, name: 'cc'}
+  ];
+
+  const getUserById = id =>
+    find(u => u.id == id, users) || Promise.reject('없어요!');
+
+  const f = ({name}) => name;
+  const g = getUserById;
+
+  // const fg = id => f(g(id));
+
+  const fg = id => Promise.resolve(id).then(g).then(f).catch(a => a);
+
+  fg(2).then(log);
+
+  setTimeout(function () {
+    users.pop();
+    users.pop();
+    fg(2).then(log);
+  }, 10);
+</script>
+
+
