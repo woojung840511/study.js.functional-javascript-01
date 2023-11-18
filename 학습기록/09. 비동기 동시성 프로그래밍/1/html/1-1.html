@@ -185,14 +185,41 @@
   new Promise(resolve =>
     setTimeout(() => resolve(2), 100)
   ).then(g).then(f)/*.then(r => log(r))*/;
+
+  log('#4 end');
 </script>
 
 ## Kleisli Composition
 
 <script>
+  log('#5 start');
+
+  // promise
+  //    Kleisli Composition 을 지원하는 도구.
+
+  // Kleisli Composition
+  //    == Kleisli arrow
+  //    오류가 있을 수 있는 상황에서의 함수 합성을 안전하게 하는 하나의 규칙
+  //    현대의 현실 프로그래밍에서는
+  //        외부 세상의 상황에 의존하고 있기 때문에
+  //        함수 합성이 원하는 대로 항상 정확하게 이루어지지 않을 수 있는 가능성이 있다.
+  //    Kleisli Composition 은
+  //        잘못된 인자가 들어와서 오류가 나는 상황
+  //        혹은 의존하고 있는 외부의 상황에 의해서 인자를 정확하게 전달할 수 없는 상황인 경우를
+  //        해결하기 위한 함수 합성 방식이다.
+
   // f . g
   // f(g(x)) = f(g(x))
-  // f(g(x)) = g(x)
+  //    양번에 x가 같다면, 양번은 같다.
+  //    하지만 양변의 x 대입 시점이 다르고 시점에 따라 x의 값이 달라지거나, x의 값이 사라진다면
+  //    양변은 같지 않고 합성이 성립되지 않기 때문에 -> 순수한 함수형 프로그래밍을 할 수가 없게 된다.
+
+  // Kleisli Composition
+  // g 함수에서 오류가 발생할 경우
+  // g를 하고 f를 한 결과와 g만을 한 결과가 같은 결과가 되도록 만드는 합성 방식이다.
+  // g에서 오류가 날 경우,
+  //    -> 마치 f를 함성하지 않은 것과 같이 만들어지는 규칙을 가진 합성이다.
+  //    f(g(x)) = g(x)
 
   var users = [
     {id: 1, name: 'aa'},
@@ -200,23 +227,56 @@
     {id: 3, name: 'cc'}
   ];
 
+/*
+  // 1. 수정 전
+
+  const getUserById = id =>
+    find(u => u.id == id, users);
+
+  // f : 객체에서 name을 추출해서, name을 리턴하는 함수 (구조분해)
+  const f = ({name}) => name;
+  const g = getUserById;
+
+  // 먼저 g를 통해서 유저를 찾고
+  // 그 결과에 f를 사용해서 이름을 추출하고자 한다.
+  // 함수 fg 를 만들어보자
+
+  // 현실세계에서 오류가 나는 상황의 예
+      const fg = id => f(g(id));
+
+      const result1 = fg(2);
+
+      users.pop();      // users가 변하는 상황
+      users.pop();      // users가 변하는 상황
+
+      const result2 = fg(2); // 오류가 나는 상황
+
+      log(result1 === result2);
+*/
+
+  // 2. 수정 후 - user를 찾지 못한 경우 reject 상태의 promise를 반환하도록 수정
+
   const getUserById = id =>
     find(u => u.id == id, users) || Promise.reject('없어요!');
 
   const f = ({name}) => name;
   const g = getUserById;
 
-  // const fg = id => f(g(id));
-
   const fg = id => Promise.resolve(id).then(g).then(f).catch(a => a);
 
-  fg(2).then(log);
+  // 외부 세상에 변화가 생기기 전
+  fg(2).then(log); // 결과 bb
 
+  // 외부 세상에 변화가 생긴 뒤
   setTimeout(function () {
     users.pop();
     users.pop();
     fg(2).then(log);
   }, 10);
+  // 결과: reject 된 promise
+  // 2라는 인자를 받은 g 함수만 실행된 결과와 동일하게 됨
+  // then 으로 이어진 함수들을 실행하기 앞서 오류가 나면 catch 하나로 상황을 정리하고 끝난다.
+
 </script>
 
 
