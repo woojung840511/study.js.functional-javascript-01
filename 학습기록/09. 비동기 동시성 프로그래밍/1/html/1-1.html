@@ -86,17 +86,50 @@
 ## 일급 활용
 
 <script>
-  const delay100 = a => new Promise(resolve =>
-    setTimeout(() => resolve(a), 100));
+  log('#3 start');
+  // ::: go1 수정전
+  // const go1 = (a, f) => f(a);
 
+  // ::: go1 수정후 - promise 다형성을 지원하는 go1
   const go1 = (a, f) => a instanceof Promise ? a.then(f) : f(a);
+
+
   const add5 = a => a + 5;
 
-  const n1 = 10;
-  // log(go1(go1(n1, add5), log));
+  // 아래 go1이 잘 동작하려면 다음과 같은 전제가 필요하다.
+  //    : 인자 a와 f가 동기적으로 동작해서 바로 값을 알 수 있는 것이어야 한다.
+  //      다시 말해서, 비동기 상황이 일어난 일급값이 아닌 일반값, 즉 promise값이 아닌 값이 들어와야 잘 적용할 수 있다.
+  log(go1(10, add5));
 
-  const n2 = delay100(10);
-  // log(go1(go1(n2, add5), log));
+  // 이렇게 promise도 위와 같이 정상적으로 동작하게 하려면 어떻게 해야할까?
+  log(go1(Promise.resolve(10), add5));
+
+  // 100 밀리세컨드 뒤에 값을 전달하는 promise를 리턴하는 함수 delay100
+  const delay100 = a =>
+      new Promise(resolve => setTimeout(() => resolve(a), 100));
+
+  // 수정 전의 go1 : const go1 = (a, f) => f(a); ---> 잘 동작하지 않는다
+  // 수정 후의 go1 : const go1 = (a, f) => a instanceof Promise ? a.then(f) : f(a);
+  // go1을 수정한 후에 promise 인자를 적용했을 경우, promise가 리턴된다.
+  log(go1(delay100(10), add5));
+
+  // 출력 - promise 가 아닌 인자를 적용한 go1 출력
+  var r = go1(10, add5);
+  log(r); // 15
+
+  // 출력 - promise 인 인자를 적용한 go1 출력
+  var r2 = go1(delay100(10), add5);
+  log('r2');
+  r2.then(log); // 100ms 이후 15 출력
+  log('#3 end');
+
+  // 출력 - then이 아닌 같은 형식으로 동일하게 출력이 되도록 하기
+  const number1 = 10;
+  go1(go1(number1, add5), log);
+
+  const number2 = delay100(10);
+  go1(go1(number2, add5), log);
+
 </script>
 
 ## Composition

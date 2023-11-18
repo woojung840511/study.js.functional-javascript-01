@@ -5,7 +5,7 @@ const curry = f =>
 
 const isIterable = a => a && a[Symbol.iterator];
 
-const go1 = (a, f) => a instanceof Promise ? a.then(f) : f(a);
+// const go1 = (a, f) => a instanceof Promise ? a.then(f) : f(a);
 
 const reduce = curry((f, acc, iter) => {
   if (!iter) {
