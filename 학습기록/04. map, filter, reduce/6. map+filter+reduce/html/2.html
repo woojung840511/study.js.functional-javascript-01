@@ -1,0 +1,35 @@
+<script src="../lib/fx.js"></script>
+
+<script>
+  const products = [
+    {name: '반팔티', price: 15000},
+    {name: '긴팔티', price: 20000},
+    {name: '핸드폰케이스', price: 15000},
+    {name: '후드티', price: 30000},
+    {name: '바지', price: 25000}
+  ];
+
+  // 1. map 함수를 통해 products 배열의 price만 뽑아낸다.
+  // 2. filter 함수를 통해 price가 20000보다 작은 값만 뽑아낸다.
+  // 3. reduce 함수를 통해 뽑아낸 값들을 더한다.
+
+  log(map(p => p.price, products));
+  log(map(p => p.price, filter(p => p.price < 20000, products)));
+
+  const add = (a, b) => a + b;
+
+  // 오른쪽에서부터 읽으면 편하다.
+  log(
+    reduce(
+      add,
+      map(p => p.price,
+        filter(p => p.price < 20000, products))));
+
+  log(
+    reduce(
+      add,
+      filter(n => n >= 20000, // 나중에 필터를 하는 경우
+        map(p => p.price, products))));
+
+
+</script>
