@@ -8,25 +8,28 @@
 ### L.map
 
 <script>
-  // L.map = function *(f, iter) {
-  //   for (const a of iter) yield f(a);
-  // };
-  // var it = L.map(a => a + 10, [1, 2, 3]);
-  // log(it.next());
-  // log(it.next());
-  // log(it.next());
+
+    // 값을 하나씩 순회하면서 함수를 적용한 값을 추출하는 함수
+  L.map = function *(f, iter) {
+    for (const a of iter) yield f(a);
+  };
+  var it = L.map(a => a + 10, [1, 2, 3]);
+  log(it.next()); // {value: 11, done: false}
+  log(it.next()); // {value: 12, done: false}
+  log(it.next()); // {value: 13, done: false}
+  log([...it]); // [14, 15, 16]
 </script>
 
 ### L.filter
 
 <script>
-  // L.filter = function *(f, iter) {
-  //   for (const a of iter) if (f(a)) yield a;
-  // };
-  // var it = L.filter(a => a % 2, [1, 2, 3, 4]);
-  // log(it.next());
-  // log(it.next());
-  // log(it.next());
+  L.filter = function *(f, iter) {
+    for (const a of iter) if (f(a)) yield a;
+  };
+  var it = L.filter(a => a % 2, [1, 2, 3, 4]);
+  log(it.next()); // {value: 1, done: false}
+  log(it.next()); // {value: 3, done: false}
+  log(it.next()); // {value: undefined, done: true}
 </script>
 
 
@@ -91,13 +94,14 @@
     return acc;
   });
 
-  // console.time('');
-  // go(range(100000),
-  //   map(n => n + 10),
-  //   filter(n => n % 2),
-  //   take(10),
-  //   log);
-  // console.timeEnd('');
+  console.time('');
+  go(range(100000),
+    map(n => n + 10),
+    filter(n => n % 2),
+    take(10),
+    log);
+  console.timeEnd('');
+
 </script>
 
 ### L.range, L.map, L.filter, take, reduce 중첩 사용
@@ -130,23 +134,30 @@
     }
   });
 
+  // 가로로 전부다 평가하는 일반 map, filter
   // [0, 1, 2, 3, 4, 5, 6, 7, 8...]
   // [10, 11, 12, ...]
   // [11, 13, 15 ..]
   // [11, 13]
   //
+
+  // 세로로 필요한 만큼만 평가하는 lazy 함수
   // [0    [1
   // 10     11
   // false]  true]
   //
 
-  // console.time('L');
-  // go(L.range(Infinity),
-  //   L.map(n => n + 10),
-  //   L.filter(n => n % 2),
-  //   take(10),
-  //   log);
-  // console.timeEnd('L');
+  console.time('L');
+  // go 안에 나열된 함수들 내부에 각각 브레이크 포인트를 잡는다면 어떤 함수에 먼저 걸릴까?
+  // 강의 듣기 전에 생각한 답: take (이유: 이터레이터가 계속 전달되다가 take에서 순회가 시작되었을 것)
+  // 오 맞았다!
+  //
+  go(L.range(Infinity),
+    L.map(n => n + 10),
+    L.filter(n => n % 2),
+    take(10),
+    log);
+  console.timeEnd('L');
 </script>
 
 ### map, filter 계열 함수들이 가지는 결합 법칙
@@ -159,6 +170,11 @@
 =
 [[mapping, filtering, mapping], [mapping, filtering, mapping]]
 
+
+### ES6의 기본 규약을 통해 구현되는 지연 평가의 장점
+- 자바스크립트의 공식적인 값을 통해서 지연성을 구현할 수 있게 되었다.
+- 안전하게 합성할 수 있게 됐다.
+- 이제는 서로 다른 라이브러리, 작업자의 함수이건 안전하게 사용할 수 있게 됐다.
 
 ## 결과를 만드는 함수 reduce, take
 
