@@ -23,11 +23,13 @@ const go = (...args) => reduce((a, f) => f(a), args);
 const pipe = (f, ...fs) => (...as) => go(f(...as), ...fs);
 
 const take = curry((l, iter) => {
+  log('call take');
   let res = [];
   iter = iter[Symbol.iterator]();
   let cur;
   while (!(cur = iter.next()).done) {
     const a = cur.value;
+    log('take > loop : a=', a);
     res.push(a);
     if (res.length == l) return res;
   }
@@ -44,14 +46,17 @@ L.range = function* (l) {
 };
 
 L.map = curry(function* (f, iter) {
+  log('call L.map')
   for (const a of iter) {
+    console.log('map > loop : a =', a);
     yield f(a);
   }
 });
 
 L.filter = curry(function* (f, iter) {
+  log('call L.filter');
   for (const a of iter) {
-    if (f(a)) yield a;
+    if (f(a)) console.log('filter > loop : a =', a); yield a;
   }
 });
 
