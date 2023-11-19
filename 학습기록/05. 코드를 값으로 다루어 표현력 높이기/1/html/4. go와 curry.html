@@ -1,0 +1,75 @@
+<script src="../lib/curry_fx.js"></script>
+
+<script>
+    const products = [
+        {name: '반팔티', price: 15000},
+        {name: '긴팔티', price: 20000},
+        {name: '핸드폰케이스', price: 15000},
+        {name: '후드티', price: 30000},
+        {name: '바지', price: 25000}
+    ];
+
+    const add = (a, b) => a + b;
+
+</script>
+
+
+## curry
+
+<script>
+
+    const mult = curry((a, b) => a * b);
+    log(mult(1));
+    // 하나만 전달하면 함수를 리턴한다.
+    // (..._) => f(a, ..._)
+    // 나머지 인자를 더 전달했을 때 받아두었던 함수에게 받아두었던 인자와 새로 받은 인자를 전달하게 되어있다.
+
+    log(mult(3)(2)); // 6 // 실행을 한번 더 한 결과
+
+    const mult3 = mult(3);
+    log(mult3(10)); // 30
+    log(mult3(5));  // 15
+    log(mult3(3));  // 9
+    // console.clear();
+</script>
+
+<script>
+
+    // 코드가 복잡해보인다.
+    log(
+        reduce(
+            add,
+            map(p => p.price,
+                filter(p => p.price < 20000, products))));
+
+    // 위 코드를 go, pipe로 표현을 바꿀 수 있다.
+    // go 함수를 사용해서
+    // 함수를 위에서 아래로, 왼쪽에서 오른쪽으로 평가하면서
+    // 연속적으로 함수를 실행하고 이전에 실행된 결과를 다음 함수에게 전달하게 된다.
+    go(
+        products,
+        products => filter(p => p.price < 20000, products),
+        products => map(p => p.price, products),
+        prices => reduce(add, prices),
+        log);
+
+    // curry를 사용하면 더 간결해진다.
+    // curry_fx.js 에서 보면 map, filter, reduce 모두 curry로 로직이 감싸여져 있다.
+    // 그래서 map, filter, reduce 모두 함수 다음 인자가 들어올 때까지 평가가 지연된다.
+/*
+    go(
+        products,
+        products => filter(p => p.price < 20000)(products), // 함수를 먼저 받고, 인자를 나중에 받는다.
+        products => map(p => p.price, products)(products),
+        prices => reduce(add, prices)(prices),
+        log);
+*/
+    // 아래처럼 간결하게 표현을 바꿀 수 있다.
+    go(
+        products,
+        filter(p => p.price < 20000),   // 함수를 먼저 받고, 인자를 나중에 받는다. curry
+        map(p => p.price),              // 함수를 먼저 받고, 인자를 나중에 받는다. curry
+        reduce(add),                    // 함수를 먼저 받고, 인자를 나중에 받는다. curry
+        log);
+
+</script>
