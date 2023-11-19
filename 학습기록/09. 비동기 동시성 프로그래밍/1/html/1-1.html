@@ -1,0 +1,282 @@
+<script src="../lib/fx.js"></script>
+# Promise
+
+## 일급
+
+<script>
+
+  /*
+  자바스크립트에서 비동기 동시성 프로그래밍?을 하는 방법 2가지
+  1. 콜백 패턴
+  2. promise
+   */
+
+  // 1. 콜백 패턴 사용하기
+  function add10(a, callback) {
+    // 의도적으로 비동기 상황을 만들었다.
+    // 결과를 100밀리세컨드 뒤에 전달
+    setTimeout(() => callback(a + 10), 100);
+  }
+
+  // 콜백 패턴 사용 예_1
+  add10(5, res => {
+    log(res); // 15
+  })
+
+  // 콜백 패턴 사용 예_2 : 중첩이 복잡하다 으악 복잡하다
+  var a = add10(5, res => { // callback // res 에 5 + 10
+        add10(res, res => {             // 100ms 후 콜백 add10 호출, res = 15
+          add10(res, res => {           // 100ms 후 콜백 add10 호출, res = 25
+            log('callback - ', res);    // 100ms 후 콜백 log 호출, res = 35
+          });
+        });
+      });
+
+  // 2. promise 사용하기
+  // 콜백함수를 받지 않는다. 실제로 연산에 필요한 인자만 받는다.
+  function add20(a) {
+    log('call add20 a', a);
+
+    // - 콜백을 사용한 add10과 가장 상징적으로 차이가 나는 부분
+    //      promise를 '리턴'한다. (리턴이 중요하다)
+    // - promise가 모두 해결됐다는 것을 (뭘 해결했다는거지) resolve 함수를 실행하는 것으로 알려주게 된다.?
+    //      내 생각 :
+    //          setTimeout 을 수행하고, 즉 100ms 후 resolve 를 리턴하는 함수를 실행하게 되는데
+    //          실행결과를 보면 then 안에 쓰인 함수 add20이 resolve 여야 말이 된다.
+    //          then 안에 쓰인 함수가 resolve 에 대입이 되나보다.
+
+    return new Promise(resolve => setTimeout(
+        () => {
+          log('resolve (',a + ' + 20)');
+          return resolve(a + 20);
+        }
+        , 100
+    ));
+  }
+
+  // 2번 더 add20을 하는 경우 : 중첩하지 않고 이어서 써내려간다.(then) 가독성이 좋음
+  var b = add20(5)
+    .then(add20)    // 100ms 후 resolve 함수인?? add20 호출, a = 25
+    .then(add20)    // 100ms 후 resolve 함수인?? add20 호출, a = 45
+    .then(log);     // 100ms 후 resolve 함수인?? log 호출, a = 65
+
+  /*
+  callback 과 promise 의 중요한 차이
+  - 정말 중요한 차이는 코드의 모양이나, 어떻게 결과를 꺼내어보는가에 있다기보다는
+  - 비동기 상황을 일급값으로 다룬다는 데 있다.
+    - 일급값 : 비동기 상황의 상태값 즉 대기, 성공, 실패를 다루는 일급값
+    - 콜백함수는 비동기 상황을 표현하는 것이 코드로만 표현되지만
+    - add20의 경우 비동기 상황에 대한 값을 만들어서 리턴하고 있다. (new Promise(..))
+        - Promise 객체로 감싸면 setTimeout 이라는 비동기 상황에 대한 상태값을 가질 수 있다는 것인듯
+        - add10() 은 아무것도 반환하지 않는 데 비해
+        - add20() 은 평가하는 즉시 Promise를 반환하는 점이 큰 차이다.
+          --> promise 를 이용해서 add20이 만든 비동기 상황을 다룰 수 있게 된다.
+          --> add10은 인자로 넘겨진 함수 코드를 이용해서 이후 상황을 이어나가야 하는데 (중첩 함수)
+          --> add20은 반환하는 promise에 then 메서드를 붙여서 인자로 이후에 붙이고 싶은 함수를 적을 수 있고
+              then 메서드가 반환하는 값 역시 promise이기 때문에 체이닝을 할 수 있다.
+              비동기 상황이 코드가 아닌 값으로 다뤄질 수 있다 => 일급
+                일급이란: 변수에 할당 가능 / 함수에 전달 가능 / 전달된 값을 통해 다른 일들을 이어나갈 수 있음
+   */
+
+  log("add10() = ", a); // undefied
+  log('add20() = ', b); // Promise {<pending>}
+
+</script>
+
+## 일급 활용
+
+<script>
+  log('#3 start');
+  // ::: go1 수정전
+  // const go1 = (a, f) => f(a);
+
+  // ::: go1 수정후 - promise 다형성을 지원하는 go1
+  const go1 = (a, f) => a instanceof Promise ? a.then(f) : f(a);
+
+
+  const add5 = a => a + 5;
+
+  // 아래 go1이 잘 동작하려면 다음과 같은 전제가 필요하다.
+  //    : 인자 a와 f가 동기적으로 동작해서 바로 값을 알 수 있는 것이어야 한다.
+  //      다시 말해서, 비동기 상황이 일어난 일급값이 아닌 일반값, 즉 promise값이 아닌 값이 들어와야 잘 적용할 수 있다.
+  log(go1(10, add5));
+
+  // 이렇게 promise도 위와 같이 정상적으로 동작하게 하려면 어떻게 해야할까?
+  log(go1(Promise.resolve(10), add5));
+
+  // 100 밀리세컨드 뒤에 값을 전달하는 promise를 리턴하는 함수 delay100
+  const delay100 = a =>
+      new Promise(resolve => setTimeout(() => resolve(a), 100));
+
+  // 수정 전의 go1 : const go1 = (a, f) => f(a); ---> 잘 동작하지 않는다
+  // 수정 후의 go1 : const go1 = (a, f) => a instanceof Promise ? a.then(f) : f(a);
+  // go1을 수정한 후에 promise 인자를 적용했을 경우, promise가 리턴된다.
+  log(go1(delay100(10), add5));
+
+  // 출력 - promise 가 아닌 인자를 적용한 go1 출력
+  var r = go1(10, add5);
+  log(r); // 15
+
+  // 출력 - promise 인 인자를 적용한 go1 출력
+  var r2 = go1(delay100(10), add5);
+  log('r2');
+  r2.then(log); // 100ms 이후 15 출력
+  log('#3 end');
+
+  // 출력 - then이 아닌 같은 형식으로 동일하게 출력이 되도록 하기
+  const number1 = 10;
+  go1(go1(number1, add5), log);
+
+  const number2 = delay100(10);
+  go1(go1(number2, add5), log);
+
+</script>
+
+## Composition
+
+<script type="module">
+  log('#4 start');
+
+  // 프로미스는
+  //    비동기 상황에서 함수 합성을 안전하게 하기 위한 도구 --> 모나드라고도 설명할 수 있다.
+
+  // 함수 합성
+  // f . g
+  // f(g(x))
+  //    x라는 인자를 받아서 g에 적용한 결과값을 f에 전달
+  //    이렇게 함수를 합성할 때 안전하게 함수를 합성하기 위해서 모나드라는 개념이 있다.
+  //    promise는 모나드 중에서도 비동기 상황을 안전하게 합성하는 것이다.
+
+  // 자바스크립트는 타입중심의 언어가 아니기 때문에
+  // 대수구조의 타입이 잘 묻어나지 않는 경향이 있다.
+  // 때문에 모나드를 직접적으로 활용한다거나 모나드를 이용한 사용자 정의 객체들을 많이 만들면서 프로그래밍을 잘 하지는 않게 된다.
+  // 모나드라는 것을 어느정도 알고 있으면
+  // 안전한 함수 합성이나
+  // 좀더 좋은 응용력, 사고를 갖을 수 있다.
+
+  // 모나드를 일단 안전한 박스, 값을 가진 컨테이너라고 보자
+  // 이 값을 통해서 함수 합성을 안전하게 해내갈 수 있다.
+  [1]
+  const g = a => a + 1;
+  const f = a => a * a;
+
+  // log(f(g(1))); // 결과: 4
+  // log(f(g()));  // 결과: NaN
+  // --> g에 빈값을 전달하면 오류가 나고 비정상적인 값이 만들어진다.
+  // --> 함수 합성이 안전한 경우가 아니다.
+  //     즉, 안전한 인지만 들어와야하는 함수.
+  // 어떠한 값이 들어올지 모르는 상황에서 함수 합성을 안전하게 만드는 것 -> 모나드
+
+  Array.of(1).map(g).map(f)/*.forEach(r => log(r))*/;   // 결과 4
+  [].map(g).map(f)/*.forEach(r => log(r))*/;            // 결과 없음 (forEach가 순회하지 않음)
+
+  // array 는
+  //    개발자가 효과를 만드를 만들거나 값을 만들때 과정 속에서 사용하는 도구이지,
+  //    사용자 화면에 노출되는 실제 결론이 아니다 (html 등에 노출되는 것이 아니다)
+
+  // 그러면 promise 는 어떤 함수 합성을 하는 값일까?
+  //    array 는 map을 통해 함수 합성을 했다.
+  //    promise 는 then을 통해 함수 합성을 하고 있다.
+  // promise 는
+  //    빈값이 들어와도 안전하게 합성이 되게 하는 도구가 아니라
+  //    비동기 상황, 대기가 일어난 상황에서의 합성을 안전하게 하는 도구다.
+
+  Promise.resolve(2).then(g).then(f)/*.then(r => log(r))*/;
+  new Promise(resolve =>
+    setTimeout(() => resolve(2), 100)
+  ).then(g).then(f)/*.then(r => log(r))*/;
+
+  log('#4 end');
+</script>
+
+## Kleisli Composition
+
+<script>
+  log('#5 start');
+
+  // promise
+  //    Kleisli Composition 을 지원하는 도구.
+
+  // Kleisli Composition
+  //    == Kleisli arrow
+  //    오류가 있을 수 있는 상황에서의 함수 합성을 안전하게 하는 하나의 규칙
+  //    현대의 현실 프로그래밍에서는
+  //        외부 세상의 상황에 의존하고 있기 때문에
+  //        함수 합성이 원하는 대로 항상 정확하게 이루어지지 않을 수 있는 가능성이 있다.
+  //    Kleisli Composition 은
+  //        잘못된 인자가 들어와서 오류가 나는 상황
+  //        혹은 의존하고 있는 외부의 상황에 의해서 인자를 정확하게 전달할 수 없는 상황인 경우를
+  //        해결하기 위한 함수 합성 방식이다.
+
+  // f . g
+  // f(g(x)) = f(g(x))
+  //    양번에 x가 같다면, 양번은 같다.
+  //    하지만 양변의 x 대입 시점이 다르고 시점에 따라 x의 값이 달라지거나, x의 값이 사라진다면
+  //    양변은 같지 않고 합성이 성립되지 않기 때문에 -> 순수한 함수형 프로그래밍을 할 수가 없게 된다.
+
+  // Kleisli Composition
+  // g 함수에서 오류가 발생할 경우
+  // g를 하고 f를 한 결과와 g만을 한 결과가 같은 결과가 되도록 만드는 합성 방식이다.
+  // g에서 오류가 날 경우,
+  //    -> 마치 f를 함성하지 않은 것과 같이 만들어지는 규칙을 가진 합성이다.
+  //    f(g(x)) = g(x)
+
+  var users = [
+    {id: 1, name: 'aa'},
+    {id: 2, name: 'bb'},
+    {id: 3, name: 'cc'}
+  ];
+
+/*
+  // 1. 수정 전
+
+  const getUserById = id =>
+    find(u => u.id == id, users);
+
+  // f : 객체에서 name을 추출해서, name을 리턴하는 함수 (구조분해)
+  const f = ({name}) => name;
+  const g = getUserById;
+
+  // 먼저 g를 통해서 유저를 찾고
+  // 그 결과에 f를 사용해서 이름을 추출하고자 한다.
+  // 함수 fg 를 만들어보자
+
+  // 현실세계에서 오류가 나는 상황의 예
+      const fg = id => f(g(id));
+
+      const result1 = fg(2);
+
+      users.pop();      // users가 변하는 상황
+      users.pop();      // users가 변하는 상황
+
+      const result2 = fg(2); // 오류가 나는 상황
+
+      log(result1 === result2);
+*/
+
+  // 2. 수정 후 - user를 찾지 못한 경우 reject 상태의 promise를 반환하도록 수정
+
+  const getUserById = id =>
+    find(u => u.id == id, users) || Promise.reject('없어요!');
+
+  const f = ({name}) => name;
+  const g = getUserById;
+
+  const fg = id => Promise.resolve(id).then(g).then(f).catch(a => a);
+
+  // 외부 세상에 변화가 생기기 전
+  fg(2).then(log); // 결과 bb
+
+  // 외부 세상에 변화가 생긴 뒤
+  setTimeout(function () {
+    users.pop();
+    users.pop();
+    fg(2).then(log);
+  }, 10);
+  // 결과: reject 된 promise
+  // 2라는 인자를 받은 g 함수만 실행된 결과와 동일하게 됨
+  // then 으로 이어진 함수들을 실행하기 앞서 오류가 나면 catch 하나로 상황을 정리하고 끝난다.
+
+</script>
+
+

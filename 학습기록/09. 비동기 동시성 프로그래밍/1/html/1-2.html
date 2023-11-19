@@ -1,0 +1,134 @@
+<script src="../lib/fx.js"></script>
+
+## go, pipe, reduce에서 비동기 제어
+
+<script>
+
+  // go, pipe, reduce에 대해서도
+  // promise나 Kleisli composition을 적용할 수 있다.
+
+  // 1. 수정 전
+  go(2,
+      a => a + 10,
+      a => a + 100,
+      a => a + 1000,
+      log); // 1111
+
+  // 2. 문제상황: 만약 중간에 Promise 를 리턴하는 함수가 들어가면 문제가 생긴다.
+  go(2,
+      a => a + 10,
+      a => Promise.resolve(a + 100),
+      a => a + 1000,
+      log); // 1111
+
+  // 3. go 내부에 있는 reduce 함수 수정 (fx.js 파일보기)
+  //  acc 를 수정해야 한다.
+
+  // 1. 수정 전의 reduce
+  /*
+     const reduce = curry((f, acc, iter) => {
+       if (!iter) {
+         iter = acc[Symbol.iterator]();
+         acc = iter.next().value;
+       } else {
+         iter = iter[Symbol.iterator]();
+       }
+       let cur;
+       while (!(cur = iter.next()).done) {
+         const a = cur.value;
+         acc = f(acc, a);
+
+         // 여기서 리턴된 acc가 Promise 일 경우
+         //      그 다음 loop 의 f 함수에
+         //          Promise 일급값을 그대로 인자로 전달하지 않고,
+         //          Promise 대기후 반환하는 '값'을 인자로 전달할 수 있도록 해야한다.
+       }
+       return acc;
+     });
+ */
+
+  // 2. 간단하게 수정해보는 reduce
+  // acc = acc instanceof Promise ? acc.then(acc => f(acc, a)) : f(acc, a)
+  /*
+     const reduce = curry((f, acc, iter) => {
+       if (!iter) {
+         iter = acc[Symbol.iterator]();
+         acc = iter.next().value;
+       } else {
+         iter = iter[Symbol.iterator]();
+       }
+       let cur;
+       while (!(cur = iter.next()).done) {
+         const a = cur.value;
+
+         // 여기서 리턴된 acc가 Promise 일 경우
+         //      그 다음 loop 의 f 함수에
+         //          Promise 일급값을 그대로 인자로 전달하지 않고,
+         //          Promise 대기후 반환하는 '값'을 인자로 전달할 수 있도록 해야한다.
+
+         // acc = f(acc, a); // 주석처리
+         // acc = acc instanceof Promise ? acc.then(acc => f(acc, a)) : f(acc, a);
+
+       }
+       return acc;
+     });
+ */
+
+  // 3. 재귀를 이용해 성능이 좋은 reduce 로 수정하기
+  //    2번의 간단한 수정 방식이 아쉬운 이유
+  //        2번의 경우 go 함수를 실행중에 Promise를 한번 만나게 되면 그 이후에 실행되는 모든 함수들이 비동기 방식이 된다.
+  //            --> 불필요한 로드 발생
+  //        Promise를 만난 이후의 함수가 동기적으로, 즉시 하나의 콜스택에서 실행되기를 바랄 경우에 대응할 수 없다.
+  /*
+    const reduce = curry((f, acc, iter) => {
+      if (!iter) {
+        iter = acc[Symbol.iterator]();
+        acc = iter.next().value;
+      } else {
+        iter = iter[Symbol.iterator]();
+      }
+      return function recur(acc) { // 유명함수: 함수를 값으로 다루면서, 이름을 짓는 기법
+        let cur;
+        while (!(cur = iter.next()).done) {
+          const a = cur.value;
+          acc = f(acc, a);
+          // 함수를 적용해본 뒤 acc가 Promise 이면
+          if (acc instanceof Promise) return acc.then(recur);
+          //    내 생각: 이렇게 하면 go의 함수 목록에서 Promise 나열이 끝날 때까지 재귀함수에 포함되고 그 이후에,
+          //            원래의 while depth 로 돌아오겠다.
+        }
+        return acc;
+      }(acc); // 즉시 실행
+    });
+  */
+
+  // 4. go 함수에 전달하는 첫번째 인자가 Promise 일 경우에 오류가 발생하지 않는 reduce 만들기
+  // 앞서 만들었던 go1 함수를 적용하면 좋다.
+  const go1 = (a, f) => a instanceof Promise ? a.then(f) : f(a);
+
+  const reduce = curry((f, acc, iter) => {
+    if (!iter) {
+      iter = acc[Symbol.iterator]();
+      acc = iter.next().value;
+    } else {
+      iter = iter[Symbol.iterator]();
+    }
+    return go1(acc, function recur(acc) { // go1 적용으로 첫번째 인자가 Promise 일 경우를 해결한다.
+      let cur;
+      while (!(cur = iter.next()).done) {
+        const a = cur.value;
+        acc = f(acc, a);
+        if (acc instanceof Promise) return acc.then(recur);
+      }
+      return acc;
+    }); // 즉시 실행
+  });
+
+  go(Promise.resolve(1),
+      a => a + 10,
+      a => Promise.reject('error~~'),
+      a => console.log('----'), // 출력되지 않는다.
+      a => a + 1000,
+      a => a + 10000,
+      log).catch(a => console.log(a)); // error~~~
+</script>
