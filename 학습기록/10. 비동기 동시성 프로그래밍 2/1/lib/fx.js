@@ -137,8 +137,13 @@ L.range = function* (l) {
   while (++i < l) yield i;
 };
 
+// L.map 변경하기
 L.map = curry(function* (f, iter) {
   for (const a of iter) {
+    // yield f(a); // 변경전
+
+    // go1로 변경
+    //    Promise로 된 iterable 한 객체를 받을 수 있게 됐다.
     yield go1(a, f);
   }
 });
